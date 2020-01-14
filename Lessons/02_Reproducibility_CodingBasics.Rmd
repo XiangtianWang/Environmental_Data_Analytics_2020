@@ -126,7 +126,8 @@ longnameforillustration
 
 ```{r}
 long_name_for_illustration <- 11
-
+long_name_for_illustration
+longnameforillustration
 ```
 
 ### Comments
@@ -232,6 +233,7 @@ recipe6 <- function(x){
 
 meal4 <- recipe6(4); meal4
 meal5 <- recipe6(2); meal5
+meal7 <- recipe6(3); meal7
 ```
 
 ### Getting help within R
