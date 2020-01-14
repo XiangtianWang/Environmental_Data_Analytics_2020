@@ -1,6 +1,6 @@
 ---
 title: "Assignment 1: Introduction"
-author: "Student Name"
+author: "Xiangtian Wang"
 output: pdf_document
 geometry: margin=2.54cm
 ---
@@ -23,14 +23,19 @@ The completed exercise is due on Tuesday, January 14th at 1:00 pm.
 1. What are your previous experiences with data analytics, R, and Git? Include both formal and informal training.
 
 > Answer: 
+a. I have learned some statistics and R program courses from some websites;
+b. I took the ENV710-Environmental data analysis(R) last year, finished 10 lab work and a final project; 
+c. In another course, ENV780 Environment Exposure, I used the NHANS data and R to work on a final project.
+d. I never use the Git, but I have some experience with another version control tool SVN. 
+  
 
 2. Are there any components of the course about which you feel confident?
 
-> Answer: 
+> Answer: Most of the concepts of our course are familiar to me, I can focus on deeper knowledge. And I am working on a project which is at the stage of data analysis, with a practical problem that will help me to understand the lessons.
 
 3. Are there any components of the course about which you feel apprehensive?
 
-> Answer: 
+> Answer: We only have one week, two lessons for time series, spatial analysis, and data scraping, I worry about it is not enough time to absorb these technologies.
 
 
 ## 2) GitHub
@@ -38,5 +43,5 @@ The completed exercise is due on Tuesday, January 14th at 1:00 pm.
 Provide a link below to your forked course repository in GitHub. Make sure you have pulled all recent changes from the course repository  and that you have updated your course README file. 
 
 > Answer: 
-
+https://github.com/XiangtianWang/Environmental_Data_Analytics_2020.git
 
