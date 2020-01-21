@@ -46,7 +46,7 @@ matrix2
 matrix3 <- matrix(1:20, nrow = 5, ncol = 4, byrow = TRUE, # return after comma continues the line
                   dimnames = list(c("uno", "dos", "tres", "cuatro", "cinco"), 
                                   c("un", "deux", "trois", "cat"))) #
-
+matrix3
 matrix1[4, ] #
 matrix1[ , 3] #
 matrix1[c(12, 14)] #
@@ -89,25 +89,45 @@ Question: In the R chunk below, write "dataframe1$". Press `tab` after you type 
 Find a ten-day forecast of temperatures (Fahrenheit) for Durham, North Carolina. Create two vectors, one representing the high temperature on each of the ten days and one representing the low.
 
 ```{r}
-
+temp_high <- c(45,49,50,52,40,40,45,52,45,52)
+temp_low <-  c(29,41,24,23,24,23,26,30,34,45)
 ```
 
 Now, create two additional vectors that include the ten-day forecast for the high and low temperatures in Celsius.
 
 ```{r}
-
+temp_low_c <- round((temp_low-32)*5/9)
+temp_high_c <- round((temp_high-32)*5/9)
 ```
 
 Combine your four vectors into a data frame and add informative column names.
 
 ```{r}
+temp <- data.frame(temp_high,temp_low,temp_high_c,temp_low_c)
+names(temp) <- c("High F","Low F", "High C", "Low C"); temp
 
 ```
 
 Use the common functions `summary` and `sd` to obtain basic data summaries of the ten-day forecast. How would you call these functions differently for the entire data frame vs. a single column? Attempt to demonstrate both options below.
 
 ```{r}
+summary(temp)
+sd(temp$`High F`)
 
+new.function <- function(a = 3, b = 6) {
+   result <- a * b
+   print(result)
+}
+new.function(2,4)
+myFirstFun<-function(n)
+{
+  # Compute the square of integer `n`
+  n*n   
+}
+
+# Assign `10` to `k`
+k <- c(10,9,8,7)
+myFirstFun(k)
 ```
 
 
