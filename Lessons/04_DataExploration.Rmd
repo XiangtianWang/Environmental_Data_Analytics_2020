@@ -65,7 +65,7 @@ You may also import datasets from the Files tab, but this is not recommended sin
 
 # Relative file path (friendly for users regardless of machine)
 USGS.flow.data <- read.csv("./Data/Raw/USGS_Site02085000_Flow_Raw.csv")
-
+Udata <- read.csv("../Data/Raw/USGS_Site02085000_Flow_Raw.csv")
 # What happens if we don't assign a name to our imported dataset?
 #read.csv("../Data/Raw/USGS_Site02085000_Flow_Raw.csv")
 
@@ -100,7 +100,7 @@ colnames(USGS.flow.data) <- c("agency_cd", "site_no", "datetime",
 str(USGS.flow.data)
 dim(USGS.flow.data)
 length(USGS.flow.data)
-
+nrow(USGS.flow.data)
 head(USGS.flow.data)
 head(USGS.flow.data, 10)
 tail(USGS.flow.data, 5)
@@ -168,9 +168,9 @@ help(as.Date)
 # (code must be uncommented)
 today <- Sys.Date()
 format(today, format = "%B")
-#format(today, format = "")
-#format(today, format = "")
-#format(today, format = "")
+format(today, format = "%Y")
+format(today, format = "%b")
+format(today, format = "%A")
 
 USGS.flow.data$datetime <- as.Date(USGS.flow.data$datetime, format = "%m/%d/%y") 
 ```
