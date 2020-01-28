@@ -1,6 +1,6 @@
 ---
 title: "Assignment 3: Data Exploration"
-author: "Student Name"
+author: "Xiangtian Wang"
 output: pdf_document
 geometry: margin=2.54cm
 ---
@@ -42,11 +42,9 @@ Litter <- read.csv ("../Data/Raw/NEON_NIWO_Litter_massdata_2018-08_raw.csv")
 4. How is litter and woody debris sampled as part of the NEON network? Read the NEON_Litterfall_UserGuide.pdf document to learn more. List three pieces of salient information about the sampling methods here: 
 
 > Answer: The raw data like these samples' dry weight and other metadata construct the level 0 data, after quality checked, are considered Level 1 data products of NEON network.
-*
-*
-*
-
-
+*Individual sampling bouts construct the mass data for plant functional groups. 
+*Samples are collected from elavated and group traps, respectively.
+*All masses reported are reported at the spatial resolution of a single trap and the temporal resolution of a single collection event.
 
 ## Obtain basic summaries of your data (Neonics)
 
