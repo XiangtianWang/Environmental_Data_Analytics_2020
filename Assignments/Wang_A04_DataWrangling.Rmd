@@ -23,7 +23,7 @@ The completed exercise is due on Tuesday, February 4 at 1:00 pm.
 
 2. Explore the dimensions, column names, and structure of the datasets. 
 
-```{r, eval=FALSE}
+```{r, results='hide', message=FALSE}
 #1
 library(tidyverse)
 library(lubridate)
@@ -100,16 +100,33 @@ write.csv(EPAair.PM25.NC2019.sub, row.names = FALSE,
 11. Save your processed dataset with the following file name: "EPAair_O3_PM25_NC1718_Processed.csv"
 
 ```{r}
-#7
+#7 Combine the four datasets with `rbind`. Make sure your column names are identical prior to running this code.
+EPAair.All <- rbind(EPAair.O3.NC2018.sub, EPAair.O3.NC2019.sub, EPAair.PM25.NC2018.sub, EPAair.PM25.NC2019.sub)
 
 #8
+com.site.O3 <-intersect(EPAair.O3.NC2018.sub$Site.Name,EPAair.O3.NC2019.sub$Site.Name)
+com.site.PM25 <-intersect(EPAair.PM25.NC2018.sub$Site.Name,EPAair.PM25.NC2019.sub$Site.Name)
+com.sit <- intersect(com.site.O3,com.site.PM25)# the common site in four data frame
+com.sit <- com.sit[-13] # delete the "" blank one 
+
+EPAair.All.pipe <- 
+  EPAair.All %>% 
+  filter(Site.Name %in% com.sit) %>%
+  group_by ( Date, Site.Name,AQS_PARAMETER_DESC, COUNTY) %>%
+  summarise(mean_AQI = mean (DAILY_AQI_VALUE),
+            mean_LATITUDE = mean(SITE_LATITUDE),
+            mean_LONGITUDE = mean(SITE_LONGITUDE)) %>%
+  mutate(Year =  year(Date)) %>%
+  mutate(Month = month(Date)) 
+dim(EPAair.All.pipe)  
 
 #9
-
+EPAair.All.spread <- spread(EPAair.All.pipe, key = AQS_PARAMETER_DESC, value = mean_AQI)
 #10
-
+dim(EPAair.All.spread)
 #11
-
+write.csv(EPAair.All.spread,row.names = FALSE,
+          "../Data/Processed/EPAair_O3_PM25_NC1718_Processed.csv")
 ```
 
 
@@ -120,13 +137,20 @@ write.csv(EPAair.PM25.NC2019.sub, row.names = FALSE,
 
 ```{r}
 #12a
-
+EPAair.All.spread.Mon.Year <- 
+  EPAair.All.spread %>%
+  group_by(Site.Name,Year, Month) %>%
+  summarise(mean_O3 = mean(Ozone),
+            mean_PM2.5 = mean (PM2.5))
 #12b
-
+EPAair.All.spread.Mon.Year <-
+  EPAair.All.spread.Mon.Year %>%
+  drop_na(Year) %>%
+  drop_na(Month)
 #13
-
+dim(EPAair.All.spread.Mon.Year)
 ```
 
 14. Why did we use the function `drop_na` rather than `na.omit`?
 
-> Answer: 
+> Answer: "na.omit" will remove all the rows contain "NA", while "drop_na" only drops the rows which miss the value we specified. In our project, if we used "na.omit", we would lose the rows which have year and month data but miss any value of 'ozone' or 'PM2.5' or 'site'. So using "drop_na" helps us to delete the data miss 'year' or 'month' exactly. 
