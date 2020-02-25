@@ -1,0 +1,48 @@
+---
+title: "Changsha_Data_Explore"
+author: "Xiangtian Wang"
+date: "2/24/2020"
+output: html_document
+---
+```{r setup, include=FALSE}
+# Set your working directory
+getwd()
+# Load your packages
+library(tidyverse)
+library(nlme)
+# Set your ggplot theme
+mytheme <- theme_classic(base_size = 14) +
+  theme(axis.text = element_text(color = "black"), 
+        legend.position = "top")
+theme_set(mytheme)
+# Load your datasets
+# Wrangling my data
+#Changsha.data <- read.csv("./data/Raw/Changsha_2020.csv")
+#Changsha.urine <- read.csv("./data/Raw/changsha_urine.csv")
+#Changsha.blood <- read.csv("./data/Raw/changsha_blood.csv")
+#Changsha.data.all <- merge(Changsha.data, Changsha.urine, by = c("id","visit"),all = TRUE)
+#Changsha.data.all <- merge(Changsha.data.all, Changsha.blood, by = c("id","visit"), all = TRUE)
+#write.csv(Changsha.data.all,"./data/Processed/Changsha_data_all.csv")
+Changsha.data.all<- read.csv("./data/Processed/Changsha_data_all.csv")
+Changsha.data.all.naomit <- na.omit(Changsha.data.all)
+Changsha.data <- read.csv("./data/Processed/Changsha_data_normalized.csv")
+
+# test nomalize
+attach(Changsha.data)
+shapiro.test(log10(ISPG))
+shapiro.test(o3exp.12h.x)
+shapiro.test(o3exp.2w.x)
+shapiro.test(pmexp.1w.x)
+plot(o3exp.24h.x,log(ISPG))
+p <-ggplot(Changsha.data)
+air <- p + aes(o3exp.2w.x,color=group) + geom_line() +
+  ylim(0,5)
+print(air)
+
+ESP <- ifelse(visit ==1 | visit ==4, TRUE, FALSE)
+HEPA <- ifelse(visit ==2 | visit ==3 & group == "B",FALSE,TRUE)
+HEPA1 <- ifelse((visit ==2 | visit ==3) & group == "B",FALSE,TRUE)
+Changsha.data <- cbind (Changsha.data, ESP, HEPA1)
+
+
+```
