@@ -1,0 +1,486 @@
+---
+title: "Changsha_Data_Explore"
+author: "Xiangtian Wang"
+date: "2/24/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+```{r setup, include=FALSE}
+# Set your working directory
+getwd()
+# Load your packages
+library(tidyverse)
+library(nlme)
+library(lmerTest)
+library(cowplot)
+library(multcomp)
+library(agricolae)
+library(broom)
+library(kableExtra)
+library(car)
+# Set your ggplot theme
+mytheme <- theme_classic(base_size = 12) +
+  theme(axis.text = element_text(color = "black"), 
+        legend.position = "top")
+theme_set(mytheme)
+# Load your datasets
+# Wrangling my data
+#Changsha.data <- read.csv("./data/Raw/Changsha_2020.csv")
+#Changsha.urine <- read.csv("./data/Raw/changsha_urine.csv")
+#Changsha.blood <- read.csv("./data/Raw/changsha_blood.csv")
+#Changsha.data.all <- merge(Changsha.data, Changsha.urine, by = c("id","visit"),all = TRUE)
+#Changsha.data.all <- merge(Changsha.data.all, Changsha.blood, by = c("id","visit"), all = TRUE)
+#write.csv(Changsha.data.all,"./data/Processed/Changsha_data_all.csv")
+Changsha.data.all<- read.csv("./data/Processed/Changsha_data_all.csv")
+Changsha.data.all.naomit <- na.omit(Changsha.data.all)
+Changsha.data <- read.csv("./Project/data/Processed/Changsha_data_normalized.csv")
+```
+
+```{r}
+# 0306 divided three groups 3: all, 2:F8 + HEPA , 3: F8
+Changsha.data$intervent <- 1
+Changsha.data$intervent[visit ==2 | visit ==3] <- 2
+Changsha.data$intervent[(visit ==2 | visit ==3) & group == "A"] <- 3
+mo <- lmer(TXB2 ~ factor(intervent) + (1|id), Changsha.data)
+mo.1 <- lm(TXB2 ~  factor(intervent) + o3exp.24h.x, Changsha.data)
+ISPG.model <- lmer(ISPG~ intervent + pmexp.2w.x+ o3exp.24h.x + (1|id),Changsha.data)
+
+full.TXB2 <- lm(log(TXB2) ~ id + visit + datetime + group + COLD + MNST + last.ate + wkday.start + gender + age + height + weight + BMI + go.home +   Smoker + ExSmoker + SmokeYears + SmokeQty + PY + dt_smoke + o3exp.12h.x + pmexp.12h.x + no2exp.12h.x + so2exp.12h.x +     Temp.12h.x + o3exp.24h.x + pmexp.24h.x + no2exp.24h.x + so2exp.24h.x +     o3exp.1w.x + pmexp.1w.x + no2exp.1w.x + so2exp.1w.x + o3exp.2w.x + 
+    pmexp.2w.x + no2exp.2w.x + so2exp.2w.x + intervent, Changsha.data)
+step(full.TXB2)
+best.TXB2 <- lm(log(TXB2) ~ last.ate + gender + height + go.home + ExSmoker + 
+    SmokeYears + SmokeQty + PY + o3exp.12h.x + no2exp.12h.x + 
+    so2exp.12h.x + o3exp.24h.x + no2exp.24h.x + so2exp.24h.x + 
+    o3exp.1w.x + so2exp.1w.x + no2exp.2w.x + so2exp.2w.x + intervent, data = Changsha.data)
+step(best.TXB2)
+simple.TXB2 <- lm(formula = log(TXB2) ~  gender +  
+    + o3exp.24h.x + intervent, data = Changsha.data)
+
+```
+
+```{r}
+# use exposure divided
+Changsha.data$pmhigh <- 1
+Changsha.data$pmhigh[visit ==1 | visit ==2] <- 0
+mda.mo <- lmer(fmda.a ~ factor(pmhigh) + (1|id), Changsha.data)
+mdamo.1 <- lm(fmda.a ~  factor(pmhigh) + pmexp.2w.x, Changsha.data)
+ISPG.model <- lmer(ISPG~ pmhigh + pmexp.2w.x+ o3exp.24h.x + (1|id),Changsha.data)
+
+full.mda <- lm(log(fmda.a) ~ id + visit + datetime + group + COLD + MNST + last.ate + wkday.start + gender + age + height + weight + BMI + go.home +   Smoker + ExSmoker + SmokeYears + SmokeQty + PY + dt_smoke + o3exp.12h.x + pmexp.12h.x + no2exp.12h.x + so2exp.12h.x +     Temp.12h.x + o3exp.24h.x + pmexp.24h.x + no2exp.24h.x + so2exp.24h.x +     o3exp.1w.x + pmexp.1w.x + no2exp.1w.x + so2exp.1w.x + o3exp.2w.x + 
+    pmexp.2w.x + no2exp.2w.x + so2exp.2w.x + pmhigh, Changsha.data)
+step(full.mda)
+best.mda <- lm(log(fmda.a) ~ MNST + last.ate + gender + ExSmoker + SmokeQty + dt_smoke + o3exp.12h.x + o3exp.24h.x, Changsha.data)
+simple.mda <- lm(fmda.a ~  last.ate  + ExSmoker + SmokeQty +  o3exp.24h.x, Changsha.data)
+simple.mda.lmer <- lmer(fmda.a ~  ExSmoker + SmokeQty +  o3exp.24h.x + (1|id), Changsha.data)
+anova(simple.mda.lmer)
+summary(simple.mda.lmer)
+AIC(best.mda,simple.mda,simple.mda.lmer)
+par(mfrow = c(2,2))
+plot(simple.mda)
+vif(simple.mda)
+coef(full.mda)
+```
+
+```{r}
+# Gather the data
+changsha.spread <- gather(Changsha.data,"biomarker", "concentration", ohdg.a : HEHE , na.rm = TRUE)
+
+changsha.gather <- gather(changsha.spread,"exposure", "level", o3exp.12h.x : so2exp.2w.x ,na.rm = TRUE)
+colnames(changsha.gather)
+d.changsha <- changsha.gather %>%
+    mutate( d.conc = concentration[visit ==1])
+changsha <- changsha.gather %>%
+  dplyr::select(id, visit, group, biomarker, concentration, exposure, level)
+
+d.diff <- changsha %>%
+  group_by(id) %>%
+  mutate(diff.conc = (concentration -concentration[visit = 1])/ concentration[visit = 1])%>%
+  mutate(diff.expo = (level-level[visit = 1]))
+
+```
+```{r}
+# Explore the data
+d.diff$visit <- as.factor(d.diff$visit)
+d.diff$biomarker <- as.factor(d.diff$biomarker)
+d.diff$id <- as.factor(d.diff$id)
+d.diff$exposure <- as.factor(d.diff$exposure)
+ohdg <- subset(d.diff, biomarker =="ohdg.a")
+
+ohdg.full <- lmer(diff.conc ~  diff.expo + visit + group+ (1|id:exposure),ohdg)
+step(ohdg.full)
+ohdg.best <- lmer(diff.conc ~ diff.expo + visit +  (1|id:exposure),ohdg)
+summary(ohdg.best)
+expo.aov <-aov(diff.conc~exposure, ohdg)
+e.a <- TukeyHSD(expo.aov)
+expo.lm <- lmer(diff.conc ~ exposure + diff.expo + (1|id), ohdg)
+summary(expo.lm)
+full <- lmer(diff.conc ~ biomarker + diff.expo + visit + group+ (1|id), d.diff)
+step(full)
+full.s <- lm(diff.conc ~ biomarker,d.diff)
+full.b <- lmer(diff.conc ~  diff.expo + (1|biomarker/id), d.diff)
+AIC(full,full.s,full.b)
+summary(full.b)
+aov.biomarker <- aov(diff.conc ~ visit + group, d.diff)
+t <-TukeyHSD(aov.biomarker)
+par(las=2)
+par(mar=c(5,8,4,2))
+plot(t)
+ggplot(d.diff, aes(diff.conc)) + geom_histogram(bins = 50)
+
+# graph it
+p <- ggplot(d.diff,aes(y = diff.conc, 
+      x = reorder(biomarker, diff.conc, median, na.rm=TRUE)))
+p + geom_boxplot() + ylim(c(-120,120))+
+  coord_flip() +
+  labs(y = "Change Rate",  x = NULL)
+
+```
+
+
+```{r}
+changsha.gather$base <- changsha.gather$concentration[visit==1]
+#d.changsha <- spread(data = changsha.gather,key = visit,concentration)
+changsha.gather$diff.conc <- changsha.gather$concentration-changsha.gather$concentration[visit ==1]
+changsha.gather$biomarker <- as.factor(changsha.gather$biomarker)
+changsha.gather$exposur <- as.factor(changsha.gather$exposur) 
+
+
+```
+
+
+
+```{r setup, include=FALSE}
+# test nomalize
+attach(Changsha.data)
+pm2w <- Changsha.data %>%
+  group_by(group,visit) %>%
+  summarise(meanPM = mean(pmexp.2w.x), 
+            sdPM = sd(pmexp.2w.x), 
+            minpm= min(pmexp.2w.x),
+            maxpm = max(pmexp.2w.x))
+Ozone12h <- Changsha.data %>%
+  group_by(group,visit) %>%
+  summarise(meanO3 = mean(o3exp.12h.x), 
+            sdPM = sd(o3exp.12h.x), 
+            minpm= min(o3exp.12h.x),
+            maxpm = max(o3exp.12h.x))
+Ozone24h <- Changsha.data %>%
+  group_by(group,visit) %>%
+  summarise(meanO3 = mean(o3exp.24h.x), 
+            sdPM = sd(o3exp.24h.x), 
+            minpm= min(o3exp.24h.x),
+            maxpm = max(o3exp.24h.x))
+pm1w <- Changsha.data %>%
+  group_by(group,visit) %>%
+  summarise(meanPM = mean(pmexp.1w.x), 
+            sdPM = sd(pmexp.1w.x), 
+            minpm= min(pmexp.1w.x),
+            maxpm = max(pmexp.1w.x))
+pm24h <- Changsha.data %>%
+  group_by(group,visit) %>%
+  summarise(meanPM = mean(pmexp.24h.x), 
+            sdPM = sd(pmexp.24h.x), 
+            minpm= min(pmexp.24h.x),
+            maxpm = max(pmexp.24h.x))
+
+kable(Ozone24h, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+kable(pm2w, "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+
+Changsha.data$visit <- as.factor(Changsha.data$visit)
+X <- with(Changsha.data, interaction(group,visit))
+O3anova <- aov(o3exp.24h.x~X, Changsha.data)
+o3h <-HSD.test(O3anova,"X",group = TRUE)
+o3h
+pmanova <- aov(pmexp.2w.x~X,Changsha.data)
+pmh<-HSD.test(pmanova,"X",group = TRUE)
+pmh
+
+pm <- ggplot(Changsha.data, aes(factor(visit), pmexp.2w.x)) +
+  geom_boxplot(aes(fill= group), alpha = 0.3)+
+  labs(size = 10,x = "", y = expression("PM2.5 2Week Exposure "*mu*"g/m"^3))+
+  stat_summary(fun.y = max, geom="text",
+               label=c("c        c","c         d","a        b","b        b"), vjust=0)
+
+ozone <- ggplot(Changsha.data, aes(factor(visit), o3exp.24h.x))+
+  geom_boxplot(aes(fill= group), alpha= 0.3) +
+  labs(x = "Visit", y = "Ozone 24Hour Exposure ppb")+
+  stat_summary(fun.y = max, geom="text",
+               label=c("a        a","bc        b","c        c","c        c"), vjust= 0)
+
+exposure <- plot_grid(pm + theme(legend.position="none"),
+         ozone + theme(legend.position="none"),
+        align = 'v', nrow = 2)
+legend_box <- get_legend(pm + 
+        theme(legend.position = "bottom"))
+plot_grid(exposure, legend_box, ncol = 1, rel_heights = c(1, .2 ))
+
+Changsha <- Changsha.data
+Changsha$visit <- as.numeric(Changsha$visit)
+pm.higher <- ifelse(Changsha$visit == 3 | Changsha.data$visit ==4, "HIGH", "LOW")
+O3.higher <- ifelse(Changsha$visit == 1 , "HIGH", "LOW")
+
+Changsha<- cbind(Changsha, pm.higher)
+Changsha <- cbind(Changsha,O3.higher)
+pmbaseline <- Changsha %>%
+        group_by(pm.higher) %>%
+        summarise(pm2.5 = mean(pmexp.2w.x),
+                  ISPG = mean(ISPG),
+                  MDA = mean(fmda.a),
+                  CRP = mean(CRP，na.rm = TRUE),
+                  OHdg = mean(ohdg.a),
+                  TXB2 = mean(TXB2),
+                  Psel = mean(psel，na.rm = TRUE),
+                  VWF = mean (VWF，na.rm = TRUE) )
+Ozonebaseline <- Changsha %>%
+        group_by(O3.higher) %>%
+        summarise(O3 = mean(o3exp.24h.x),
+                  ISPG = mean(ISPG),
+                  MDA = mean(fmda.a),
+                  CRP = mean(CRP，na.rm = TRUE),
+                  OHdg = mean(ohdg.a),
+                  TXB2 = mean(TXB2),
+                  Psel = mean(psel，na.rm = TRUE),
+                  VWF = mean (VWF，na.rm = TRUE) )
+
+# max
+pmmax <- Changsha %>%
+        group_by(pm.higher) %>%
+        summarise(pm2.5 = max(pmexp.2w.x),
+                  ISPG = max(ISPG),
+                  MDA = max(fmda.a),
+                  CRP = max(CRP，na.rm = TRUE),
+                  OHdg = max(ohdg.a),
+                  TXB2 = max(TXB2),
+                  Psel = max(psel，na.rm = TRUE),
+                  VWF = max (VWF，na.rm = TRUE) )
+Ozonemax <- Changsha %>%
+        group_by(O3.higher) %>%
+        summarise(O3 = max(o3exp.24h.x),
+                  ISPG = max(ISPG),
+                  MDA = max(fmda.a),
+                  CRP = max(CRP，na.rm = TRUE),
+                  OHdg = max(ohdg.a),
+                  TXB2 = max(TXB2),
+                  Psel = max(psel，na.rm = TRUE),
+                  VWF = max (VWF，na.rm = TRUE) )
+
+
+pmmax <- t(pmmax)
+Ozonemax <- t(Ozonemax)
+pmbaseline <- t(pmbaseline)
+Ozonebaseline <- t(Ozonebaseline)
+diff.changsha <- read.csv("./Project/data/Processed/differences_biomarker.csv")
+diff.changsha$Sign <- as.factor(sign(diff.changsha$Ratio*(-1)))
+d <- ggplot(diff.changsha,aes(Ratio, Biomarker,color=Sign)) +
+    geom_point(aes(pch = Class),size =3) +
+#    geom_errorbarh(aes(xmin = Ratio*.05, xmax = Ratio*.95)) +
+    geom_vline(xintercept = 0, color = "red", lty = 2) +
+    xlab("Biomarker Changing Rate ") +
+    ylab("Biomarker")+
+    geom_text(aes(label = Biomarker ), vjust =-1, size =3, check_overlap = TRUE)  +
+    facet_grid(.~Type)
+print(d)
+
+fit <- aov(Ratio ~ Type + Class , diff.changsha)
+TukeyHSD(fit)
+
+
+
+write.csv(diff.changsha,"./Project/data/Processed/differences_biomarker.csv")
+
+
+
+library(car)
+scatterplotMatrix(Changsha.data[1:10], spread = FALSE,smoother.args = list(lty =2))
+shapiro.test(log(ISPG))
+shapiro.test(o3exp.12h.x)
+shapiro.test(o3exp.2w.x)
+shapiro.test(pmexp.1w.x)
+shapiro.test(ISPG)
+shapiro.test(log(psel))
+barplot(ISPG)
+barplot(TXB2)
+visit <- as.factor(visit)
+qqnorm(TXB2); qqline(TXB2)
+qqnorm(ISPG); qqline(ISPG)
+plot(TXB2,psel)
+plot(o3exp.24h.x,log(ISPG))
+ggplot(Changsha.data, aes(log(ISPG)))+ geom_density()
+var.test(ISPG~group)
+var.test(TXB2~group)
+var.test(HEHE~group)
+ISPG.visit <- lm(ISPG ~visit)
+summary(ISPG.visit)
+bartlett.test(ISPG,visit)
+ISPG.visit.aov <- aov(log(ISPG)~visit)
+summary(ISPG.visit.aov)
+plot(ISPG.visit.aov)
+TukeyHSD(ISPG.visit.aov)
+ISPG.visit.group <- HSD.test(ISPG.visit.aov,"visit",group =TRUE)
+ISPG.visit.group
+colnames(Changsha.data)
+
+ISPG.anova <- aov(ISPG ~ group + visit +gender + age + BMI + pmexp.2w.x+ o3exp.12h.x, Changsha.data)
+g <-glht(ISPG.anova)
+summary(g)
+
+plot(cld(g,level = .05),col="lightgrey")
+ISPG.lm   <-  lm(ISPG ~ visit * group + gender + age + BMI + pmexp.2w.x+ o3exp.12h.x, Changsha.data)
+summary(ISPG.anova)
+step(ISPG.lm)
+summary(ISPG.lm)
+
+psel.anova <- aov(psel ~ group + visit + group:visit, Changsha.data)
+psel.lm   <-  lm(psel ~ visit * group, Changsha.data)
+summary(psel.anova)
+summary(psel.lm)
+
+CRP.anova <- aov(CRP ~ group + visit + group:visit, Changsha.data)
+CRP.lm   <-  lm(CRP ~ visit * group, Changsha.data)
+summary(CRP.anova)
+summary(CRP.lm)
+
+ohdg.a.anova <- aov(ohdg.a ~ group + visit + group:visit, Changsha.data)
+ohdg.a.lm   <-  lm(ohdg.a ~ visit * group, Changsha.data)
+summary(ohdg.a.anova)
+summary(ohdg.a.lm)
+
+
+TXB2.anova <- aov(TXB2 ~ group + visit + group:visit, Changsha.data)
+TXB2.lm   <-  lm(TXB2 ~ visit + group +gender + age + BMI + pmexp.2w.x+ o3exp.12h.x, Changsha.data)
+summary(TXB2.anova)
+summary(TXB2.lm)
+
+GV.interaction <- with(Changsha.data, interaction(group, visit))
+ISPG.anova.2way <- aov(data = Changsha.data, ISPG ~ GV.interaction)
+ggplot(Changsha.data,aes(x=pmexp.2w.x,y=ISPG, color = group)) + 
+  geom_point() + ylim(0,70) +facet_grid(visit~.,)
+GV.groups <- HSD.test(ISPG.anova.2way, "GA.interaction", group = TRUE)
+GV.groups
+
+
+ISPG.lm   <-  lm(log(ISPG) ~ group +gender + age + BMI + pmexp.2w.x+ o3exp.12h.x, visit4)
+summary(ISPG.lm)
+
+
+
+# group a,b
+a.group <- subset(Changsha.data,group =="A")
+b.group <- subset(Changsha.data,group =="B")
+detach(Changsha.data)
+attach(a.group)
+qqnorm(TXB2); qqline(TXB2)
+qqnorm(ISPG); qqline(ISPG)
+plot(log(TXB2),log(psel))
+plot(o3exp.24h.x,log(ISPG))
+ggplot(a.group, aes(log(ISPG)))+ geom_density()
+bartlett.test(log(ISPG),visit)
+ISPG.visit.aov <- aov(log(ISPG)~visit)
+summary(ISPG.visit.aov)
+plot(ISPG.visit.aov)
+TukeyHSD(ISPG.visit.aov)
+ISPG.visit.group <- HSD.test(ISPG.visit.aov,"visit",group =TRUE)
+ISPG.visit.group
+detach(a.group)
+attach(b.group)
+qqnorm(TXB2); qqline(TXB2)
+qqnorm(ISPG); qqline(ISPG)
+plot(log(TXB2),log(psel))
+plot(o3exp.24h.x,log(ISPG))
+ggplot(a.group, aes(log(ISPG)))+ geom_density()
+bartlett.test(log(ISPG),visit)
+ISPG.visit.aov <- aov(log(ISPG)~visit)
+summary(ISPG.visit.aov)
+plot(ISPG.visit.aov)
+TukeyHSD(ISPG.visit.aov)
+ISPG.visit.group <- HSD.test(ISPG.visit.aov,"visit",group =TRUE)
+ISPG.visit.group
+
+# vist2,3
+visit1 <- subset(Changsha.data, visit=="1")
+visit2 <- subset(Changsha.data, visit=="2")
+visit3 <- subset(Changsha.data, visit=="3")
+visit4 <- subset(Changsha.data, visit=="4")
+visit1a <- subset(visit1, group =="A")
+visit2a <- subset(visit2, group =="A")
+visit3a <- subset(visit3, group =="A")
+visit4a <- subset(visit4, group =="A")
+visit1b <- subset(visit1, group =="B")
+visit2b <- subset(visit2, group =="B")
+visit3b <- subset(visit3, group =="B")
+visit4b <- subset(visit4, group =="B")
+
+t.test(visit2a$TXB2,visit3a$TXB2)
+
+
+
+#
+fit1 <- lm(ISPG~factor(visit))
+summary(fit1)
+plot(TukeyHSD(fit1))
+
+fit2 <- aov(TXB2~factor(visit))
+summary(fit2)
+plot(TukeyHSD(fit2))
+library(car)
+qqPlot(lm(TXB2~visit, data = Changsha.data), simulate = TRUE, main = 'QQ Plot', labels = FALSE)
+barplot(log(ISPG))
+cor(Changsha.data[1:4])
+# 
+kruskal.test(ISPG,visit)
+kruskal.test(ISPG,group)
+kruskal.test(TXB2,visit)
+kruskal.test(TXB2,group)
+kruskal.test(pmexp.2w.x,visit)
+kruskal.test(o3exp.24h.x,group)
+kruskal.test(pmexp.24h.x,visit)
+kruskal.test(o3exp.2w.x,group)
+kruskal.test(o3exp.12h.x,visit)
+kruskal.test(o3exp.12h.x,group)
+fit1 <- lm(fmda.a~visit)
+summary(fit1)
+# group A , O3 and PM2.5 (V1+V2+V3):V4 Using two weeks O3 data
+baseline.O3 <- o3exp.2w.x[Changsha.data$visit==1]
+O3.v2 <- o3exp.2w.x[Changsha.data$visit==2]
+O3.v3 <- o3exp.2w.x[Changsha.data$visit==3]
+O3.v4 <-  o3exp.2w.x[Changsha.data$visit==4]
+summary(baseline.O3,O3.v2,O3.v3,O3.v4)
+anova(baseline.O3,O3.v2)
+
+# ESP = True means PM2.5 high, HEPA = TRUE means O3 high
+ESP <- ifelse(visit ==1 | visit ==4, TRUE, FALSE)
+HEPA <- ifelse((visit ==2 | visit ==3) & group == "B",FALSE,TRUE)
+Changsha.data <- cbind (Changsha.data, ESP, HEPA)
+
+
+p <- ggplot(Changsha.data)
+# PM2.5
+p.pm2.5 <- p + aes(ESP,pmexp.24h.x) + geom_violin()
+p.PM2.5.8ISPG <- p + aes(ESP,ISPG) + geom_violin()+ ylim(0,75)
+p.PM2.5.11TXB2 <- p + aes(ESP,TXB2) + geom_violin()
+
+# O3
+p.O3 <- p + aes(HEPA,o3exp.24h.x) + geom_violin()
+p.O3.8ISPG <- p + aes(HEPA,ISPG) + geom_violin()+ ylim(0,50)
+p.O3.11TXB2 <- p + aes(HEPA,TXB2) + geom_violin() + ylim(0,15)
+par(mfrow=c(3,2))
+plot_grid(p.pm2.5,p.PM2.5.8ISPG, p.PM2.5.11TXB2,p.O3,p.O3.8ISPG, p.O3.11TXB2)
+
+
+
+p.a <- p + aes(factor(visit),pmexp.2w.x)+ geom_boxplot()
+p.ispg <- p + aes(factor(visit),ISPG)+ geom_boxplot()+ylim(0,20)
+print(p.ispg)
+a <- aov(ISPG~factor(visit), a.group)
+boxplot(ISPG~factor(visit))
+fit.p <- lmer(ISPG ~   o3exp.24h.x+(~1|id), Changsha.data)
+summary(fit.p)
+
+# BUILD MODEL
+cor(Changsha.data)
+ISPG <- log(ISPG)
+TXB2 <- log(TXB2)
+```

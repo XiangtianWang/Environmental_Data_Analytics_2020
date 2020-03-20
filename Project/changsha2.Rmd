@@ -1,0 +1,337 @@
+---
+title: "Changsha_Data_Explore"
+author: "Xiangtian Wang"
+date: "2/24/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+```{r setup, include=FALSE}
+# Set your working directory
+getwd()
+# Load your packages
+library(tidyverse)
+library(nlme)
+library(lmerTest)
+library(cowplot)
+library(multcomp)
+library(agricolae)
+library(broom)
+library(kableExtra)
+library(car)
+library(emmeans)
+library(lmtest)
+# Set your ggplot theme
+mytheme <- theme_classic(base_size = 14) +
+  theme(axis.text = element_text(color = "black"), 
+        legend.position = "top")
+theme_set(mytheme)
+Changsha.data <- read.csv("./Project/data/Processed/Changsha_data_normalized.csv")
+```
+
+```{r}
+Changsha.data$int1 <- 0
+Changsha.data$int2 <- 0
+Changsha.data$int3 <- 0
+Changsha.data$int4 <- 0
+Changsha.data$int1[Changsha.data$visit ==1] <- 1
+Changsha.data$int2[(Changsha.data$visit ==2 | Changsha.data$visit ==3) & Changsha.data$group == "A"] <- 1
+Changsha.data$int3[(Changsha.data$visit ==2 | Changsha.data$visit ==3) & Changsha.data$group == "B"] <- 1
+Changsha.data$int4[Changsha.data$visit ==4] <- 1
+
+
+```
+
+
+```{r}
+psel.fit <- aov(psel ~ int1 + int2 + int3 + int4 + Error(id), Changsha.data)
+psel.fit1 <- lmer(log(psel) ~ int2+ int3+int4 +int1+ (1|id), Changsha.data)
+barplot(Changsha.data$ISPG,Changsha.data)
+summary(psel.fit)
+summary(psel.fit1)
+vif(psel.fit1)
+psel.fit1
+par(fmrow= c(2,2))
+plot(psel.fit1)
+avg.psel.1 <- Changsha.data$psel[Changsha.data$int1==1] 
+
+avg.psel.2 <- Changsha.data$psel[Changsha.data$int2==1]
+
+avg.psel.3 <- Changsha.data$psel[Changsha.data$int3==1]
+
+avg.psel.4 <- Changsha.data$psel[Changsha.data$int4==1]
+
+
+boxplot(avg.psel.1,avg.psel.2,avg.psel.3,avg.psel.4)
+ISPG.fit <- lmer(log(ISPG) ~ int2+ int3+ int4 +int1+ (1|id), Changsha.data)
+summary(ISPG.fit)
+
+
+
+
+TXB2.fit <- lmer(TXB2 ~ factor(int2)+ factor(int3)+ factor(int4) +factor(int1)+ (1|id), Changsha.data)
+summary(TXB2.fit)
+summary(glht(TXB2.fit, linfct= mcp(TXB2 ="Tukey")))
+
+
+CRP.fit <- lmer(log(CRP) ~ int2+ int3+ int4 +int1+ (1|id), Changsha.data)
+summary(CRP.fit)
+
+VWF.fit <- lmer(log(VWF) ~  int2+ int3+ int4 +int1+ (1|id), Changsha.data)
+summary(VWF.fit)
+
+fmda.a.fit <- lmer(log(fmda.a) ~  int2+ int3+ int4 +int1+ (1|id), Changsha.data)
+summary(fmda.a.fit)
+
+ohdg.a.fit <- lmer(log(ohdg.a) ~int2+ int3+ int4 +int1+ (1|id), Changsha.data)
+summary(ohdg.a.fit)
+
+HEHE.fit <- lmer(log(HEHE) ~ int2+ int3+ int4 +int1+ (1|id), Changsha.data)
+summary(HEHE.fit)
+anova(HEHE.fit)
+write.csv(lmer_result,"lmer.result.csv")
+
+lmer.re <- t(lmer_result)
+
+```
+# Draw lmer result
+```{r}
+d <- ggplot(lmer_result,aes(Ratio, Biomarker,color=Sign)) +
+    geom_point(aes(pch = Class),size =3) +
+#    geom_errorbarh(aes(xmin = Ratio*.05, xmax = Ratio*.95)) +
+    geom_vline(xintercept = 0, color = "red", lty = 2) +
+    xlab("Biomarker Changing Rate ") +
+    ylab("Biomarker")+
+    geom_text(aes(label = Biomarker ), vjust =-1, size =3, check_overlap = TRUE)  +
+    facet_grid(.~Type)
+print(d)
+```
+
+
+```{r}
+Changsha.data$visit<- as.factor(Changsha.data$visit)
+#1
+ohdg.a.lmer <- lmer(log(ohdg.a) ~ o3exp.24h.x  + (1|id), Changsha.data)
+summary(ohdg.a.lmer)
+#2
+fmda.a.lmer <- lmer(log(fmda.a) ~ visit * group+ o3exp.24h.x + pmexp.2w.x + (1|id), Changsha.data)
+summary(fmda.a.lmer)
+#3
+psel.lmer <- lmer(log(psel) ~  o3exp.24h.x  + (1|id), Changsha.data)
+summary(psel.lmer)
+#4
+HEHE.lmer <- lmer(log(HEHE) ~  o3exp.24h.x + pmexp.2w.x + (1|id), Changsha.data)
+summary(HEHE.lmer)
+#5
+TXB2.lmer <- lmer(log(TXB2) ~ pmexp.1w.x + (1|id), Changsha.data)
+summary(TXB2.lmer)
+#6
+CRP.lmer <- lmer(log(CRP) ~ visit * group+ o3exp.24h.x + pmexp.2w.x + (1|id), Changsha.data)
+summary(CRP.lmer)
+#7
+VWF.lmer <- lmer(log(VWF) ~ visit * group+ o3exp.24h.x + pmexp.2w.x + (1|id), Changsha.data)
+summary(VWF.lmer)
+#8
+ISPG.lmer <- lmer(log(ISPG) ~   pmexp.2w.x +   (1|id), Changsha.data)
+summary(ISPG.lmer)
+
+ISPG.full <- lm(ISPG ~ id + group + last.ate + gender + height + go.home + Smoker + 
+    ExSmoker + SmokeYears + ohdg.a + fmda.a + CRP + VWF + 
+    TXB2 + o3exp.12h.x + no2exp.12h.x + pmexp.24h.x + so2exp.24h.x + 
+    o3exp.1w.x + pmexp.1w.x + no2exp.1w.x + so2exp.1w.x + o3exp.2w.x + 
+    pmexp.2w.x + no2exp.2w.x + so2exp.2w.x,Changsha.data)
+summary(ISPG.full)
+step(ISPG.full)
+vif(ISPG.full)
+
+```
+
+# regroup by PM2.5 high
+```{r}
+Changsha.data$intervent <- 1
+Changsha.data$intervent[Changsha.data$visit ==2 | Changsha.data$visit ==3] <- 2
+Changsha.data$intervent[(Changsha.data$visit ==2 | Changsha.data$visit ==3) & Changsha.data$group == "A"] <- 3
+Changsha.data$intervent[Changsha.data$visit ==4] <- 4
+Changsha.data$intervent<- as.factor(Changsha.data$intervent)
+
+TXB2.aov <- aov(TXB2 ~ factor(intervent)+ Error(id/(intervent)), Changsha.data)
+summary(TXB2.aov)
+TXB2.lmxix <- lmer(TXB2 ~ intervent + (1|id),Changsha.data)
+summary(TXB2.lmxix)
+TXB2.aov1 <- aov(log(TXB2)~factor(intervent), Changsha.data)
+TukeyHSD(TXB2.aov1)
+plot(TukeyHSD(TXB2.aov1))
+# cardiovasculur
+psel.fit <- aov(log(psel) ~ factor(intervent)+ Error(id/(intervent)), Changsha.data)
+psel.lmxix <- lmer(psel ~ intervent + (1|id),Changsha.data)
+summary(psel.lmxix)
+psel.aov <- aov(psel~factor(intervent), Changsha.data)
+TukeyHSD(psel.aov)
+plot(TukeyHSD(psel.aov))
+```
+
+# Figure 3.The intervention effect on exposure and biomarkers
+```{r, fig.height = 8, fig.width = 6}
+p <- ggplot(Changsha.data)
+# Hemostasis
+p1 <- p + aes(intervent,psel,color = intervent) + 
+  geom_boxplot()+ 
+  scale_colour_hue("Intervention") +
+  stat_summary(fun.y=mean, geom="line", aes(group=1),color = "darkblue")  + labs(y="PSeletin ng/ml", x="") +
+  stat_summary(fun.y=mean, geom="point")
+p2 <- p + aes(intervent,TXB2,color = intervent) + 
+  geom_boxplot()+ ylim(0,7.5)+
+  stat_summary(fun.y=mean, geom="line", aes(group=1),color = "darkblue")  + labs(y="11-TXB2 ng/ml", x="") +
+  stat_summary(fun.y=mean, geom="point")
+p3 <- p + aes(intervent,VWF,color = intervent) + 
+  geom_boxplot()+
+  stat_summary(fun.y=mean, geom="line", aes(group=1),color = "darkblue")  + labs(y="VWF ng/ml", x="") +
+  stat_summary(fun.y=mean, geom="point")
+p4 <- p + aes(intervent,HEHE,color = intervent) + 
+  geom_boxplot()+ ylim(0,.5)+
+  stat_summary(fun.y=mean, geom="line", aes(group=1),color = "darkblue")  + labs(y="20HEHE ng/ml", x="") +
+  stat_summary(fun.y=mean, geom="point")
+pe <- p + aes(intervent,o3exp.24h.x,color = intervent)+ geom_boxplot() + labs(y = "24h Average Ozone ppm", x="")+stat_summary(fun.y=mean, geom="line", aes(group=1),color = "darkblue")  +  
+  stat_summary(fun.y=mean, geom="point")
+pp <- p + aes(intervent,pmexp.1w.x,color = intervent)+ geom_boxplot()+ labs(y = "2W Average PM2.5 ppm", x="")+stat_summary(fun.y=mean, geom="line", aes(group=1),color = "darkblue")  +
+  stat_summary(fun.y=mean, geom="point")
+# now add the title
+title <- ggdraw() + 
+  draw_label(
+    "Figure 3.The intervention effect on exposure and biomarkers",
+    fontface = 'bold',
+    x = 0,
+    hjust = 0
+  ) +
+  theme(
+    # add margin on the left of the drawing canvas,
+    # so title is aligned with left edge of first plot
+    plot.margin = margin(2, 0, 2, 2)
+  )
+#plot_grid(pe, p1,p2,p3,p4, nrow = 1, align = 'h', rel_heights = c(1.25, 1))
+#plot_grid(pp, p1,p2,p3,p4, nrow = 1, align = 'h', rel_heights = c(1.25, 1))
+# Oxidatve
+p5 <- p + aes(intervent,ohdg.a,color = intervent) + 
+  geom_boxplot()+
+  stat_summary(fun.y=mean, geom="line", aes(group=1),color = "darkblue")  + labs(y="8-OHdG ng/ml", x="") +
+  stat_summary(fun.y=mean, geom="point")
+p6 <- p + aes(intervent,fmda.a,color = intervent) + 
+  geom_boxplot()+
+  stat_summary(fun.y=mean, geom="line", aes(group=1),color = "darkblue")  + labs(y="MDA ng/ml", x="") +
+  stat_summary(fun.y=mean, geom="point")
+p7 <- p + aes(intervent,ISPG,color = intervent) + ylim(0,25)+
+  geom_boxplot()+
+  stat_summary(fun.y=mean, geom="line", aes(group=1),color = "darkblue")  +    labs(y="8-ISO-Pro ng/ml", x="") + 
+  stat_summary(fun.y=mean, geom="point")
+p8 <- p + aes(intervent,CRP,color = intervent) + 
+  geom_boxplot()+ylim(0,2000)+
+  stat_summary(fun.y=mean, geom="line", aes(group=1),color = "darkblue")  + labs(y="CRP ng/ml", x="") + 
+  stat_summary(fun.y=mean, geom="point")
+
+#plot_grid(pe, p5,p6,p7,p8, nrow = 1, align = 'h', rel_heights = c(1.25, 1))
+#plot_grid(pp, p5,p6,p7,p8, nrow = 1, align = 'h', rel_heights = c(1.25, 1))
+box.all1 <- plot_grid(pe + theme(legend.position="none"),
+          p5 + theme(legend.position="none"),
+          p1 + theme(legend.position="none"),
+          p8 + theme(legend.position="none"),
+          p4 + theme(legend.position="none"),
+          align = 'h', nrow = 1)
+box.all2 <- plot_grid(pp + theme(legend.position="none"),
+          p7 + theme(legend.position="none"),
+          p2 + theme(legend.position="none"),
+          p3 + theme(legend.position="none"),
+          p6 + theme(legend.position="none"),
+          align = 'h', nrow = 1)
+legend_box <- get_legend(p1 + 
+        theme(legend.position = "top"))
+plot_grid(box.all1, box.all2,legend_box, ncol = 1,
+          rel_heights = c(1,1,0.2))
+
+
+
+```
+
+
+
+```{r, fig.height = 7, fig.width = 6}
+#install.packages("cowplot")
+library(cowplot)
+plot_grid(NvsP2, Nutrientplot, nrow = 2, align = 'h', rel_heights = c(1.25, 1))
+
+print(p1)
+
+TXB2.fit <- aov(log(TXB2) ~ intervent+ o3exp.24h.x + pmexp.2w.x + Error(id/(intervent)), Changsha.data)
+summary(TXB2.fit)
+
+ohdg.a.fit <- aov(ohdg.a ~ intervent+ o3exp.24h.x + pmexp.2w.x + Error(id/(intervent)), Changsha.data)
+summary(ohdg.a.fit)
+
+ohdg.a.lmer <- lmer(log(ohdg.a) ~ intervent+ o3exp.24h.x + pmexp.2w.x + (1|id), Changsha.data)
+summary(ohdg.a.lmer)
+
+fmda.a.fit <- aov(fmda.a ~ intervent+ o3exp.24h.x + pmexp.2w.x + Error(id/(intervent)), Changsha.data)
+summary(fmda.a.fit)
+
+a <-coefficients(TXB2.fit)
+
+
+
+ISPG.fit <- aov(log(ISPG)~ intervent + Error(id/(intervent)), Changsha.data)
+summary(ISPG.fit)
+
+```
+
+
+```{r setup, include=FALSE}
+# Gather the data
+changsha.gather <- gather(Changsha.data,"biomarker", "concentration", ohdg.a : HEHE , na.rm = TRUE)
+
+
+d.diff <- changsha.gather %>%
+  group_by(id) %>%
+  mutate(diff.conc = (concentration -concentration[visit = 1])/ concentration[visit = 1])
+```
+
+```{r}
+# OHdGExplore the data
+#d.diff$visit <- as.factor(d.diff$visit)
+ohdg <- subset(d.diff, biomarker =="ohdg.a",-biomarker)
+ohdg.lm.full <- lm(diff.conc ~ ., ohdg)
+step(ohdg.lm.full)
+ohdg.step <- lm(formula = diff.conc ~ group + last.ate + age + 
+    BMI + go.home + ExSmoker + SmokeYears + PY  + o3exp.12h.x + 
+    so2exp.12h.x + o3exp.24h.x + no2exp.24h.x + so2exp.24h.x + 
+    pmexp.1w.x + concentration, data = ohdg)
+summary(ohdg.step)
+ohdg.simple <- lm(formula = diff.conc ~ group  + age + 
+    BMI + go.home +  o3exp.12h.x + 
+    so2exp.12h.x + o3exp.24h.x + no2exp.24h.x + so2exp.24h.x + 
+    pmexp.1w.x , data = ohdg)
+summary(ohdg.simple)
+vif(ohdg.simple)
+summary(ohdg.step)
+ohdg.s <- lm(formula = diff.conc ~ group  + age + 
+    BMI + go.home + o3exp.24h.x + no2exp.24h.x + so2exp.24h.x + pmexp.1w.x , data = ohdg)
+summary(ohdg.s)
+AIC(ohdg.lm.full,ohdg.step,ohdg.simple,ohdg.s)
+
+```
+```{r}
+# lmer
+ohdg$visit <- as.factor(ohdg$visit)
+ohdg$group <- as.factor(ohdg$group)
+ohdg.lmer <- lmer(diff.conc ~   o3exp.12h.x + pmexp.2w.x + (1|id) , data = ohdg)
+summary(ohdg.lmer)
+
+ohdg.i <- lmer(diff.conc ~ visit*group + (1|id), ohdg)
+summary(ohdg.i)
+
+ohdg.fit <- aov(diff.conc ~ visit*group + Error(id/(visit)), ohdg)
+summary(ohdg.fit)
+
+
+
+
+
+```
+

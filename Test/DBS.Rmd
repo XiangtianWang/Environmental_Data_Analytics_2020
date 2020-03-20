@@ -1,0 +1,27 @@
+---
+title: "DBS"
+author: "Xiangtian Wang"
+date: "3/6/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+fix(DBS_TEST)
+Dbs <- DBS_TEST
+ggplot(Dbs) + aes(Type,MDA)+ geom_boxplot()
+
+Cot <-Cotinine_plasma_R
+Cot$Conc <- Cot$Conc*2
+Cot$Conc[Cot$Conc < 0.39] <-  "<LOQ"
+write.csv(Cot, "Cot_R.csv")
+
+Cot$Conc[Cot$Conc > 100] <-  ">100ng/ml"
+write_excel_csv(Cot,"Cot_R1.csv")
+fix(Cot)
+```
+
